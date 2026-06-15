@@ -66,9 +66,34 @@
           tap.createToken(card).then(function(result) {
             if (result.error) {
               document.getElementById('status').textContent = 'Error: ' + result.error.message
-            } else {
-              document.getElementById('status').textContent = '✅ Token created: ' + result.id
+              return
             }
+
+            // Send token to our backend to create a real charge
+            fetch('/api/charge', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                token: result.id,
+                amount: 50,
+                currency: 'SAR'
+              })
+            })
+            .then(function(res) { return res.json() })
+            .then(function(charge) {
+              if (charge.status === 'INITIATED' || charge.status === 'CAPTURED') {
+                document.getElementById('status').textContent = '✅ Payment successful! Charge ID: ' + charge.id
+              } else if (charge.transaction && charge.transaction.url) {
+                // 3DS required — redirect for verification
+                document.getElementById('status').textContent = 'Redirecting for 3D Secure verification...'
+                window.top.location.href = charge.transaction.url
+              } else {
+                document.getElementById('status').textContent = 'Payment status: ' + charge.status
+              }
+            })
+            .catch(function(err) {
+              document.getElementById('status').textContent = 'Error: ' + err.message
+            })
           })
         }
       }
