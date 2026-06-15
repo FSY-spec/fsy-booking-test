@@ -3,9 +3,45 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>FSY Booking Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   </head>
   <body style="font-family: sans-serif; text-align: center; padding: 40px;">
     <h1>🧘 Free Spirit Yoga</h1>
-    <p>Booking app coming soon. Embed test successful!</p>
+    <p id="status">Loading...</p>
+    <input id="email" type="email" placeholder="Enter your email" style="padding: 10px; font-size: 16px;"><br><br>
+    <button onclick="sendOTP()" style="padding: 10px 20px; font-size: 16px;">Send OTP</button>
+    <br><br>
+    <input id="otp" type="text" placeholder="Enter OTP code" style="padding: 10px; font-size: 16px;"><br><br>
+    <button onclick="verifyOTP()" style="padding: 10px 20px; font-size: 16px;">Verify</button>
+
+    <script>
+      const supabase = window.supabase.createClient(
+        'https://thiqtqxuwfoocbrmrvhx.supabase.co',
+        'sb_publishable_dTGGxW-CNHOvOfXovlZrGg_a0VSNJcU'
+      )
+
+      document.getElementById('status').textContent = 'Ready'
+
+      async function sendOTP() {
+        const email = document.getElementById('email').value
+        const { error } = await supabase.auth.signInWithOtp({ email })
+        if (error) {
+          document.getElementById('status').textContent = 'Error: ' + error.message
+        } else {
+          document.getElementById('status').textContent = 'OTP sent! Check your email.'
+        }
+      }
+
+      async function verifyOTP() {
+        const email = document.getElementById('email').value
+        const token = document.getElementById('otp').value
+        const { data, error } = await supabase.auth.verifyOtp({ email, token, type: 'email' })
+        if (error) {
+          document.getElementById('status').textContent = 'Error: ' + error.message
+        } else {
+          document.getElementById('status').textContent = 'Logged in as: ' + data.user.email
+        }
+      }
+    </script>
   </body>
 </html>
