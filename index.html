@@ -8,8 +8,44 @@
     <h1>🧘 Free Spirit Yoga</h1>
     <p id="status">Loading...</p>
 
-    <script>
-      document.getElementById('status').textContent = 'JavaScript is working!'
+    <input id="email" type="email" placeholder="Enter your email" style="padding: 10px; font-size: 16px;"><br><br>
+    <button onclick="sendOTP()" style="padding: 10px 20px; font-size: 16px;">Send OTP</button>
+    <br><br>
+    <input id="otp" type="text" placeholder="Enter OTP code" style="padding: 10px; font-size: 16px;"><br><br>
+    <button onclick="verifyOTP()" style="padding: 10px 20px; font-size: 16px;">Verify</button>
+
+    <script type="module">
+      import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+      const supabase = createClient(
+        'https://thiqtqxuwfoocbrmrvhx.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoaXF0cXh1d2Zvb2Nicm1ydmh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MTAxMzAsImV4cCI6MjA5NzA4NjEzMH0.yQiWm1ylsguj9EQxCZGoHU-mKNwGKoN3eqZoDrKCW34'
+      )
+
+      document.getElementById('status').textContent = 'Ready'
+
+      window.sendOTP = async function() {
+        const email = document.getElementById('email').value
+        document.getElementById('status').textContent = 'Sending...'
+        const { error } = await supabase.auth.signInWithOtp({ email })
+        if (error) {
+          document.getElementById('status').textContent = 'Error: ' + error.message
+        } else {
+          document.getElementById('status').textContent = 'OTP sent! Check your email.'
+        }
+      }
+
+      window.verifyOTP = async function() {
+        const email = document.getElementById('email').value
+        const token = document.getElementById('otp').value
+        document.getElementById('status').textContent = 'Verifying...'
+        const { data, error } = await supabase.auth.verifyOtp({ email, token, type: 'email' })
+        if (error) {
+          document.getElementById('status').textContent = 'Error: ' + error.message
+        } else {
+          document.getElementById('status').textContent = 'Logged in as: ' + data.user.email
+        }
+      }
     </script>
   </body>
 </html>
