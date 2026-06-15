@@ -3,62 +3,67 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>FSY Booking Test</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bluebird/3.7.2/bluebird.min.js"></script>
   </head>
   <body style="font-family: sans-serif; text-align: center; padding: 40px;">
     <h1>🧘 Free Spirit Yoga</h1>
     <p>Class booking test — 50 SAR</p>
-    <p id="status">Ready</p>
-
-    <div id="tap-button"></div>
-
-    <script src="https://secure.gosell.io/js/sdk/tap.min.js"></script>
-    <script>
-      var tap = Tapjsli('pk_test_TUBf1D3EaSRGw7ONXqJjrFsP')
-
-      var elements = tap.elements({})
-
-      var style = {
-        base: {
-          color: '#535353',
-          lineHeight: '18px',
-          fontFamily: 'sans-serif',
-          fontSmoothing: 'antialiased',
-          fontSize: '16px',
-        },
-        invalid: {
-          color: 'red',
-        }
-      }
-
-      var card = elements.create('card', { style: style })
-      card.mount('#tap-button')
-
-      card.addEventListener('change', function(event) {
-        if (event.error) {
-          document.getElementById('status').textContent = event.error.message
-        } else {
-          document.getElementById('status').textContent = 'Ready'
-        }
-      })
-
-      var form = document.getElementById('tap-button')
-
-      async function pay() {
-        document.getElementById('status').textContent = 'Processing...'
-        const { token, error } = await tap.createToken(card)
-        if (error) {
-          document.getElementById('status').textContent = 'Error: ' + error.message
-        } else {
-          document.getElementById('status').textContent = '✅ Token created: ' + token.id
-        }
-      }
-    </script>
-
-    <br><br>
-    <button onclick="pay()" style="padding: 10px 30px; font-size: 16px; background: #000; color: #fff; border: none; border-radius: 8px; cursor: pointer;">
+    <p id="status">Loading payment form...</p>
+    <div id="element-container" style="margin: 20px auto; max-width: 400px; text-align: left;"></div>
+    <div id="error-handler" style="color:red;"></div>
+    <br>
+    <button id="pay-btn" onclick="pay()" style="padding: 10px 30px; font-size: 16px; background: #000; color: #fff; border: none; border-radius: 8px; cursor: pointer; display:none;">
       Pay 50 SAR
     </button>
 
+    <script src="https://secure.gosell.io/js/sdk/tap.min.js"></script>
+    <script>
+      window.onload = function() {
+        var tap = Tapjsli('pk_test_TUBf1D3EaSRGw7ONXqJjrFsP')
+
+        var elements = tap.elements({
+          mode: 'payment',
+          merchant: { id: '' },
+          transaction: { amount: 50, currency: 'SAR' },
+          acceptance: { supportedBrands: ['VISA', 'MASTERCARD'] }
+        })
+
+        var style = {
+          base: {
+            color: '#535353',
+            lineHeight: '18px',
+            fontFamily: 'sans-serif',
+            fontSmoothing: 'antialiased',
+            fontSize: '16px',
+          },
+          invalid: { color: 'red' }
+        }
+
+        var card = elements.create('card', { style: style })
+        card.mount('#element-container')
+
+        card.addEventListener('change', function(event) {
+          if (event.error) {
+            document.getElementById('error-handler').textContent = event.error.message
+          } else {
+            document.getElementById('error-handler').textContent = ''
+          }
+        })
+
+        card.addEventListener('ready', function() {
+          document.getElementById('status').textContent = 'Ready — enter your card details'
+          document.getElementById('pay-btn').style.display = 'inline-block'
+        })
+
+        window.pay = async function() {
+          document.getElementById('status').textContent = 'Processing...'
+          const { token, error } = await tap.createToken(card)
+          if (error) {
+            document.getElementById('status').textContent = 'Error: ' + error.message
+          } else {
+            document.getElementById('status').textContent = '✅ Token created: ' + token.id
+          }
+        }
+      }
+    </script>
   </body>
 </html>
