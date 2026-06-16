@@ -3,99 +3,114 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>FSY Booking Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   </head>
   <body style="font-family: sans-serif; text-align: center; padding: 40px;">
     <h1>🧘 Free Spirit Yoga</h1>
-    <p>Class booking test — 50 SAR</p>
-    <p id="status">Loading payment form...</p>
-    <div id="element-container" style="margin: 20px auto; max-width: 400px; text-align: left;"></div>
-    <div id="error-handler" style="color:red;"></div>
-    <br>
-    <button id="pay-btn" onclick="pay()" style="padding: 10px 30px; font-size: 16px; background: #000; color: #fff; border: none; border-radius: 8px; cursor: pointer; display:none;">
-      Pay 50 SAR
-    </button>
 
-    <script src="https://secure.gosell.io/js/sdk/tap.min.js"></script>
+    <!-- Screen 1: Email entry -->
+    <div id="screen-email">
+      <p>Enter your email to receive a login code</p>
+      <input id="email-input" type="email" placeholder="your@email.com"
+        style="padding: 10px; font-size: 16px; width: 280px; border: 1px solid #ccc; border-radius: 8px;" />
+      <br><br>
+      <button onclick="sendOTP()"
+        style="padding: 10px 30px; font-size: 16px; background: #000; color: #fff; border: none; border-radius: 8px; cursor: pointer;">
+        Send Code
+      </button>
+      <p id="email-status" style="color: gray;"></p>
+    </div>
+
+    <!-- Screen 2: OTP entry -->
+    <div id="screen-otp" style="display:none;">
+      <p>Enter the 6-digit code sent to your email</p>
+      <input id="otp-input" type="number" placeholder="123456"
+        style="padding: 10px; font-size: 24px; width: 160px; text-align: center; border: 1px solid #ccc; border-radius: 8px; letter-spacing: 6px;" />
+      <br><br>
+      <button onclick="verifyOTP()"
+        style="padding: 10px 30px; font-size: 16px; background: #000; color: #fff; border: none; border-radius: 8px; cursor: pointer;">
+        Verify Code
+      </button>
+      <br><br>
+      <a href="#" onclick="goBack()" style="color: gray; font-size: 14px;">← Use a different email</a>
+      <p id="otp-status" style="color: gray;"></p>
+    </div>
+
+    <!-- Screen 3: Logged in -->
+    <div id="screen-success" style="display:none;">
+      <p style="font-size: 20px;">✅ Logged in!</p>
+      <p id="user-email" style="color: gray;"></p>
+      <button onclick="signOut()"
+        style="padding: 8px 20px; font-size: 14px; background: #ccc; color: #000; border: none; border-radius: 8px; cursor: pointer;">
+        Sign Out
+      </button>
+    </div>
+
     <script>
-      window.onload = function() {
-        var tap = Tapjsli('pk_test_TUBf1D3EaSRGw7ONXqJjrFsP')
-        var elements = tap.elements({})
+      const supabase = window.supabase.createClient(
+        'https://thiqtqxuwfoocbrmrvhx.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoaXF0cXh1d2Zvb2Nicm1ydmh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MTAxMzAsImV4cCI6MjA5NzA4NjEzMH0.yQiWm1ylsguj9EQxCZGoHU-mKNwGKoN3eqZoDrKCW34'
+      )
 
-        var style = {
-          base: {
-            color: '#535353',
-            lineHeight: '18px',
-            fontFamily: 'sans-serif',
-            fontSmoothing: 'antialiased',
-            fontSize: '16px',
-            '::placeholder': { color: 'rgba(0, 0, 0, 0.26)', fontSize: '15px' }
-          },
-          invalid: { color: 'red' }
+      let currentEmail = ''
+
+      async function sendOTP() {
+        const email = document.getElementById('email-input').value.trim()
+        if (!email) {
+          document.getElementById('email-status').textContent = 'Please enter your email.'
+          return
         }
+        currentEmail = email
+        document.getElementById('email-status').textContent = 'Sending...'
 
-        var paymentOptions = {
-          currencyCode: ['SAR'],
-          labels: {
-            cardNumber: 'Card Number',
-            expirationDate: 'MM/YY',
-            cvv: 'CVV',
-            cardHolder: 'Card Holder Name'
-          },
-          TextDirection: 'ltr',
-          paymentAllowed: ['VISA', 'MASTERCARD', 'MADA']
-        }
-
-        var card = elements.create('card', { style: style }, paymentOptions)
-        card.mount('#element-container')
-
-        card.addEventListener('change', function(event) {
-          if (event.error) {
-            document.getElementById('error-handler').textContent = event.error.message
-          } else {
-            document.getElementById('error-handler').textContent = ''
-          }
+        const { error } = await supabase.auth.signInWithOtp({
+          email: email,
+          options: { shouldCreateUser: true }
         })
 
-        card.addEventListener('ready', function() {
-          document.getElementById('status').textContent = 'Enter your card details below'
-          document.getElementById('pay-btn').style.display = 'inline-block'
+        if (error) {
+          document.getElementById('email-status').textContent = 'Error: ' + error.message
+        } else {
+          document.getElementById('email-status').textContent = ''
+          document.getElementById('screen-email').style.display = 'none'
+          document.getElementById('screen-otp').style.display = 'block'
+        }
+      }
+
+      async function verifyOTP() {
+        const token = document.getElementById('otp-input').value.trim()
+        if (!token) {
+          document.getElementById('otp-status').textContent = 'Please enter the code.'
+          return
+        }
+        document.getElementById('otp-status').textContent = 'Verifying...'
+
+        const { data, error } = await supabase.auth.verifyOtp({
+          email: currentEmail,
+          token: token,
+          type: 'email'
         })
 
-        window.pay = function() {
-          document.getElementById('status').textContent = 'Processing...'
-          tap.createToken(card).then(function(result) {
-            if (result.error) {
-              document.getElementById('status').textContent = 'Error: ' + result.error.message
-              return
-            }
-
-            // Send token to our backend to create a real charge
-            fetch('/api/charge', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                token: result.id,
-                amount: 50,
-                currency: 'SAR'
-              })
-            })
-            .then(function(res) { return res.json() })
-            .then(function(charge) {
-              if (charge.status === 'INITIATED' || charge.status === 'CAPTURED') {
-                document.getElementById('status').textContent = '✅ Payment successful! Charge ID: ' + charge.id
-              } else if (charge.transaction && charge.transaction.url) {
-                // 3DS required — redirect for verification
-                document.getElementById('status').textContent = 'Redirecting for 3D Secure verification...'
-                window.top.location.href = charge.transaction.url
-              } else {
-                document.getElementById('status').textContent = 'Payment status: ' + charge.status
-              }
-            })
-            .catch(function(err) {
-              document.getElementById('status').textContent = 'Error: ' + err.message
-            })
-          })
+        if (error) {
+          document.getElementById('otp-status').textContent = 'Error: ' + error.message
+        } else {
+          document.getElementById('screen-otp').style.display = 'none'
+          document.getElementById('screen-success').style.display = 'block'
+          document.getElementById('user-email').textContent = data.user.email
         }
+      }
+
+      function goBack() {
+        document.getElementById('screen-otp').style.display = 'none'
+        document.getElementById('screen-email').style.display = 'block'
+        document.getElementById('otp-status').textContent = ''
+      }
+
+      async function signOut() {
+        await supabase.auth.signOut()
+        document.getElementById('screen-success').style.display = 'none'
+        document.getElementById('screen-email').style.display = 'block'
+        document.getElementById('email-input').value = ''
       }
     </script>
   </body>
