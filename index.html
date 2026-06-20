@@ -9,7 +9,6 @@
     <p>Class booking test — 1 SAR</p>
     <p id="status">Loading payment form...</p>
     <div id="element-container" style="margin: 20px auto; max-width: 400px; text-align: left;"></div>
-    <div id="apple-pay-container" style="margin: 20px auto; max-width: 400px;"></div>
     <div id="error-handler" style="color:red;"></div>
     <br>
     <button id="pay-btn" onclick="pay()" style="padding: 10px 30px; font-size: 16px; background: #000; color: #fff; border: none; border-radius: 8px; cursor: pointer; display:none;">
@@ -21,7 +20,6 @@
       window.onload = function() {
         var tap = Tapjsli('pk_live_eyRZAXs8pKWbjzqOFSVHQPiJ')
         var elements = tap.elements({})
-
         var style = {
           base: {
             color: '#535353',
@@ -33,47 +31,21 @@
           },
           invalid: { color: 'red' }
         }
-
         var paymentOptions = {
           currencyCode: ['SAR'],
           labels: { cardNumber: 'Card Number', expirationDate: 'MM/YY', cvv: 'CVV', cardHolder: 'Card Holder Name' },
           TextDirection: 'ltr',
-          paymentAllowed: ['VISA', 'MASTERCARD', 'MADA', 'APPLE_PAY']
+          paymentAllowed: ['VISA', 'MASTERCARD', 'MADA']
         }
-
-        // Card widget
         var card = elements.create('card', { style: style }, paymentOptions)
         card.mount('#element-container')
-
         card.addEventListener('change', function(event) {
           document.getElementById('error-handler').textContent = event.error ? event.error.message : ''
         })
-
         card.addEventListener('ready', function() {
           document.getElementById('status').textContent = 'Enter your card details below'
           document.getElementById('pay-btn').style.display = 'inline-block'
         })
-
-        // Apple Pay button
-        var applePayButton = elements.create('applepay', {
-          style: { height: '48px' },
-          paymentRequest: {
-            country: 'SA',
-            currency: 'SAR',
-            total: { label: 'Free Spirit Yoga', amount: '1.00' }
-          }
-        })
-        applePayButton.mount('#apple-pay-container')
-
-        applePayButton.addEventListener('token', function(token) {
-          chargeToken(token.id)
-        })
-
-        applePayButton.addEventListener('error', function(event) {
-          document.getElementById('error-handler').textContent = event.error ? event.error.message : ''
-        })
-
-        // Card pay button
         window.pay = function() {
           document.getElementById('status').textContent = 'Processing...'
           tap.createToken(card).then(function(result) {
@@ -81,31 +53,25 @@
               document.getElementById('status').textContent = 'Error: ' + result.error.message
               return
             }
-            chargeToken(result.id)
-          })
-        }
-
-        // Shared charge function
-        function chargeToken(tokenId) {
-          document.getElementById('status').textContent = 'Processing...'
-          fetch('/api/charge', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: tokenId, amount: 1, currency: 'SAR' })
-          })
-          .then(function(res) { return res.json() })
-          .then(function(charge) {
-            if (charge.status === 'INITIATED' || charge.status === 'CAPTURED') {
-              document.getElementById('status').textContent = '✅ Payment successful! Charge ID: ' + charge.id
-            } else if (charge.transaction && charge.transaction.url) {
-              document.getElementById('status').textContent = 'Redirecting for 3D Secure...'
-              window.top.location.href = charge.transaction.url
-            } else {
-              document.getElementById('status').textContent = 'Payment status: ' + JSON.stringify(charge)
-            }
-          })
-          .catch(function(err) {
-            document.getElementById('status').textContent = 'Error: ' + err.message
+            fetch('/api/charge', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ token: result.id, amount: 1, currency: 'SAR' })
+            })
+            .then(function(res) { return res.json() })
+            .then(function(charge) {
+              if (charge.status === 'INITIATED' || charge.status === 'CAPTURED') {
+                document.getElementById('status').textContent = '✅ Payment successful! Charge ID: ' + charge.id
+              } else if (charge.transaction && charge.transaction.url) {
+                document.getElementById('status').textContent = 'Redirecting for 3D Secure...'
+                window.top.location.href = charge.transaction.url
+              } else {
+                document.getElementById('status').textContent = 'Payment status: ' + JSON.stringify(charge)
+              }
+            })
+            .catch(function(err) {
+              document.getElementById('status').textContent = 'Error: ' + err.message
+            })
           })
         }
       }
