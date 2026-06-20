@@ -46,11 +46,19 @@
           document.getElementById('status').textContent = 'Enter your card details below'
           document.getElementById('pay-btn').style.display = 'inline-block'
         })
+
+        var paid = false
+
         window.pay = function() {
+          if (paid) return
+          paid = true
+          document.getElementById('pay-btn').disabled = true
           document.getElementById('status').textContent = 'Processing...'
           tap.createToken(card).then(function(result) {
             if (result.error) {
               document.getElementById('status').textContent = 'Error: ' + result.error.message
+              paid = false
+              document.getElementById('pay-btn').disabled = false
               return
             }
             fetch('/api/charge', {
@@ -60,17 +68,26 @@
             })
             .then(function(res) { return res.json() })
             .then(function(charge) {
-              if (charge.status === 'INITIATED' || charge.status === 'CAPTURED') {
+              console.log('Charge response:', charge)
+              if (charge.status === 'CAPTURED') {
                 document.getElementById('status').textContent = '✅ Payment successful! Charge ID: ' + charge.id
               } else if (charge.transaction && charge.transaction.url) {
-                document.getElementById('status').textContent = 'Redirecting for 3D Secure...'
-                window.top.location.href = charge.transaction.url
+                document.getElementById('status').textContent = 'Redirecting to bank for verification...'
+                setTimeout(function() {
+                  window.location.href = charge.transaction.url
+                }, 1000)
+              } else if (charge.errors) {
+                document.getElementById('status').textContent = 'Error: ' + charge.errors[0].description
+                paid = false
+                document.getElementById('pay-btn').disabled = false
               } else {
-                document.getElementById('status').textContent = 'Payment status: ' + JSON.stringify(charge)
+                document.getElementById('status').textContent = 'Status: ' + charge.status
               }
             })
             .catch(function(err) {
               document.getElementById('status').textContent = 'Error: ' + err.message
+              paid = false
+              document.getElementById('pay-btn').disabled = false
             })
           })
         }
