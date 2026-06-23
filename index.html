@@ -504,6 +504,10 @@
     sb.auth.onAuthStateChange(function(event, session) {
       if (event === 'SIGNED_IN' && session && !routed) {
         routed = true
+        // Clear the token hash from the URL so no other tab can reuse it
+        if (window.location.hash) {
+          window.history.replaceState(null, '', window.location.pathname)
+        }
         routeUser(session.user)
       }
       if (event === 'SIGNED_OUT') {
