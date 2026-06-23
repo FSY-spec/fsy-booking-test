@@ -452,8 +452,7 @@
   <script>
     var sb = window.supabase.createClient(
       'https://thiqtqxuwfoocbrmrvhx.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoaXF0cXh1d2Zvb2Nicm1ydmh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MTAxMzAsImV4cCI6MjA5NzA4NjEzMH0.yQiWm1ylsguj9EQxCZGoHU-mKNwGKoN3eqZoDrKCW34',
-      { auth: { flowType: 'pkce' } }
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoaXF0cXh1d2Zvb2Nicm1ydmh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MTAxMzAsImV4cCI6MjA5NzA4NjEzMH0.yQiWm1ylsguj9EQxCZGoHU-mKNwGKoN3eqZoDrKCW34'
     )
 
     // ── ROUTING ──────────────────────────────────────────────────────────────
@@ -500,11 +499,15 @@
     // SIGNED_IN fires after OTP exchange completes.
     // Both need the same routing logic.
 
+    var routed = false
+
     sb.auth.onAuthStateChange(function(event, session) {
-      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
+      if (event === 'SIGNED_IN' && session && !routed) {
+        routed = true
         routeUser(session.user)
       }
       if (event === 'SIGNED_OUT') {
+        routed = false
         showWelcome()
       }
     })
